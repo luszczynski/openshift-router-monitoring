@@ -329,3 +329,12 @@ spec:
     matchLabels:
       metrics: router
 ```
+
+### Grafana Dashboard
+
+* https://grafana.com/grafana/dashboards/367
+* https://github.com/rfrail3/grafana-dashboards/blob/master/prometheus/haproxy-full.json
+
+### Docs
+
+* https://github.com/jboss-developer/jboss-jdg-quickstarts/tree/jdg-7.3.x/openshift/shared/prometheus-monitoring
