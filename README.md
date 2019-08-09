@@ -2,6 +2,10 @@
 
 Openshift Router (HAProxy) Monitoring using Prometheus and Grafana
 
+![](imgs/01.png)
+
+![](imgs/02.png)
+
 ## Pre-req
 
 ### Iptables
@@ -193,6 +197,8 @@ prometheus.openshift.io/password: yourpass
 prometheus.openshift.io/username: youruser
 ```
 
+Check if your your service is correct.
+
 ```bash
 oc -n default get svc router --export -o yaml
 ```
@@ -268,7 +274,6 @@ For that, you can run:
 ```bash
 # Replace every file with your project
 sed -i 's/namespace: .*/namespace: your-project/' prometheus-operator/*.yaml
-
 sed -i 's/myproject/your-project/g' install-prometheus.sh
 
 # Install prometheus
@@ -278,6 +283,8 @@ sed -i 's/myproject/your-project/g' install-prometheus.sh
 Or you can follow the oficial docs: https://github.com/coreos/prometheus-operator
 
 ### Grafana
+
+To install grafana, run:
 
 ```bash
 # Replace every file with your project
@@ -300,6 +307,8 @@ metadata:
   name: servicemonitor-auth
 type: Opaque
 ```
+
+Now, let's create the service monitor:
 
 ```
 oc apply -f service-monitor.yaml
@@ -331,6 +340,8 @@ spec:
 ```
 
 ### Grafana Dashboard
+
+You can install the dashboards below:
 
 * https://grafana.com/grafana/dashboards/367
 * https://github.com/rfrail3/grafana-dashboards/blob/master/prometheus/haproxy-full.json
