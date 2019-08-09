@@ -339,6 +339,12 @@ spec:
       metrics: router
 ```
 
+### Prometheus Targets
+
+Check if your router is showing on Prometheus targets page
+
+![](imgs/03.png)
+
 ### Grafana Dashboard
 
 You can install the dashboards below:
