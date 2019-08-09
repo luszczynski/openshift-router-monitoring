@@ -104,11 +104,11 @@ spec:
         - name: ROUTER_THREADS
           value: "0"
         - name: STATS_PASSWORD
-          value: redhat123
+          value: yourpass
         - name: STATS_PORT
           value: "1936"
         - name: STATS_USERNAME
-          value: admin
+          value: youruser
         - name: EXTENDED_VALIDATION
           value: "true"
         - name: ROUTER_METRICS_TYPE
@@ -245,7 +245,7 @@ spec:
 To test if our metrics is working, just execute:
 
 ```bash
-oc -n default exec router-16-8v96c -- curl --silent -u admin:redhat123 localhost:1936/metrics
+oc -n default exec router-16-8v96c -- curl --silent -u youruser:yourpass localhost:1936/metrics
 ```
 
 > Remember to replace `router-16-8v96c` for your router pods name
