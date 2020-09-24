@@ -94,11 +94,11 @@ apiserver_client_certificate_expiration_seconds_bucket{le="172800"} 0
 ...
 ----
 
-=== Prometheus
+== Prometheus
 
 You can't customize the internal Openshift stack monitoring (prometheus and grafana) due to supportability issues. You need to install another prometheus on your Openshift cluster.
 
-==== Install CRDs
+=== Install CRDs
 
 For that, you can run:
 
@@ -119,7 +119,7 @@ Error from server (AlreadyExists): error when creating "crds.yaml": customresour
 
 NOTE: You can ignore this errors. They will happen only when you already have all the CRDs necessary in your cluster.
 
-==== Create project for monitoring
+=== Create project for monitoring
 
 [source,bash]
 ----
@@ -127,7 +127,7 @@ NOTE: You can ignore this errors. They will happen only when you already have al
 oc new-project $ROUTER_MONITORING_PROJECT
 ----
 
-==== Install Prometheus Operator
+=== Install Prometheus Operator
 
 [source,bash]
 ----
@@ -163,7 +163,7 @@ prometheus-operator-7c75c8fb6b-k752m   1/1     Running   0          39s
 prometheus-prometheus-0                3/3     Running   1          36s
 ----
 
-==== Create service monitor
+=== Create service monitor
 
 [source,bash]
 ----
@@ -175,13 +175,13 @@ oc process -f router-service-monitor.yaml \
   | oc apply -f -
 ----
 
-==== Prometheus target
+=== Prometheus target
 
 Check if your router is showing on Prometheus targets page
 
 image::03.png[]
 
-=== Grafana
+== Grafana
 
 To install grafana, run:
 
@@ -197,16 +197,14 @@ Find the grafana URL by running:
 oc get route -n $ROUTER_MONITORING_PROJECT
 ----
 
-User: admin
-Pass: admin
+Grafana credentials:
 
-==== Grafana Dashboard
+* User: admin
+* Pass: admin
+
+=== Grafana Dashboard
 
 You can install the dashboards below:
 
 * https://grafana.com/grafana/dashboards/367
 * https://github.com/rfrail3/grafana-dashboards/blob/master/prometheus/haproxy-full.json
-
-=== Docs
-
-* https://github.com/jboss-developer/jboss-jdg-quickstarts/tree/jdg-7.3.x/openshift/shared/prometheus-monitoring
