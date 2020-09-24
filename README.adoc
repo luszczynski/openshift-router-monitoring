@@ -1,0 +1,212 @@
+= Openshift 3.11 Prometheus + Grafana Router Monitoring
+:toc:
+:toc-placement!:
+:icons:
+:imagesdir: imgs
+
+Openshift Router (HAProxy) Monitoring using Prometheus and Grafana
+
+image::01.png[]
+
+image::02.png[]
+
+toc::[]
+
+== Pre-req
+
+=== Variables
+
+[source,bash]
+----
+export ROUTER_USERNAME=admin
+export ROUTER_PASSWORD=admin
+export ROUTER_MONITORING_PROJECT=router-monitoring
+----
+
+=== Router Configuration
+
+==== Deployment Configuration
+
+You need to make sure your router environment vars are as following:
+
+* `STATS_PORT` = 1936
+* `ROUTER_METRICS_TYPE` = haproxy
+
+You can check that by running:
+
+[source,bash]
+----
+oc set env dc/router --list -n default | grep STATS_PORT
+oc set env dc/router --list -n default | grep ROUTER_METRICS_TYPE
+----
+
+Now, choose some username and password and change them on your router by running:
+
+[source,bash]
+----
+oc set env dc/router \
+  STATS_USERNAME=$ROUTER_USERNAME \
+  STATS_PASSWORD=$ROUTER_PASSWORD \
+  -n default
+----
+
+Wait the new version of your router be deployed. You can check if it is done by running:
+
+[source,bash]
+----
+watch oc get pods -n default
+----
+
+Let's see if everything is right:
+
+[source,bash]
+----
+oc set env dc/router --list -n default | grep STATS_USERNAME
+# output: STATS_USERNAME=admin
+
+oc set env dc/router --list -n default | grep STATS_PASSWORD
+# output: STATS_PASSWORD=admin
+----
+
+==== Testing Router metrics
+
+To test if our metrics is working run the following commands:
+
+[source,bash]
+----
+router_pod=$(oc get pods -l deploymentconfig=router --no-headers -n default | head -1 | awk '{print $1}')
+oc -n default exec $router_pod -- curl --silent -u $ROUTER_USERNAME:$ROUTER_PASSWORD localhost:1936/metrics
+----
+
+You should see something similar to this:
+
+----
+# HELP apiserver_audit_event_total Counter of audit events generated and sent to the audit backend.
+# TYPE apiserver_audit_event_total counter
+apiserver_audit_event_total 0
+# HELP apiserver_client_certificate_expiration_seconds Distribution of the remaining lifetime on the certificate used to authenticate a request.
+# TYPE apiserver_client_certificate_expiration_seconds histogram
+apiserver_client_certificate_expiration_seconds_bucket{le="0"} 0
+apiserver_client_certificate_expiration_seconds_bucket{le="21600"} 0
+apiserver_client_certificate_expiration_seconds_bucket{le="43200"} 0
+apiserver_client_certificate_expiration_seconds_bucket{le="86400"} 0
+apiserver_client_certificate_expiration_seconds_bucket{le="172800"} 0
+...
+----
+
+=== Prometheus
+
+You can't customize the internal Openshift stack monitoring (prometheus and grafana) due to supportability issues. You need to install another prometheus on your Openshift cluster.
+
+==== Install CRDs
+
+For that, you can run:
+
+[source,bash]
+----
+# Install CRDs if necessary
+oc create -f crds.yaml
+----
+
+Output:
+[source,bash]
+----
+Error from server (AlreadyExists): error when creating "crds.yaml": customresourcedefinitions.apiextensions.k8s.io "prometheusrules.monitoring.coreos.com" already exists
+Error from server (AlreadyExists): error when creating "crds.yaml": customresourcedefinitions.apiextensions.k8s.io "servicemonitors.monitoring.coreos.com" already exists
+Error from server (AlreadyExists): error when creating "crds.yaml": customresourcedefinitions.apiextensions.k8s.io "prometheuses.monitoring.coreos.com" already exists
+Error from server (AlreadyExists): error when creating "crds.yaml": customresourcedefinitions.apiextensions.k8s.io "alertmanagers.monitoring.coreos.com" already exists
+----
+
+NOTE: You can ignore this errors. They will happen only when you already have all the CRDs necessary in your cluster.
+
+==== Create project for monitoring
+
+[source,bash]
+----
+# Create project for router monitoring
+oc new-project $ROUTER_MONITORING_PROJECT
+----
+
+==== Install Prometheus Operator
+
+[source,bash]
+----
+# Install operator on <YOUR NAMESPACE>
+oc process -f prometheus-operator-template.yaml -p NAMESPACE=$ROUTER_MONITORING_PROJECT | oc create -f -
+----
+
+Output:
+
+[source,bash]
+----
+rolebinding.rbac.authorization.k8s.io/prometheus-operator created
+role.rbac.authorization.k8s.io/prometheus-operator created
+deployment.apps/prometheus-operator created
+serviceaccount/prometheus-operator created
+prometheus.monitoring.coreos.com/prometheus created
+service/prometheus created
+serviceaccount/prometheus created
+role.rbac.authorization.k8s.io/prometheus created
+rolebinding.rbac.authorization.k8s.io/prometheus created
+route.route.openshift.io/prometheus created
+----
+
+Make sure your Operator and Prometheus pods are running before moving on.
+
+[source,bash]
+----
+oc get pods -n $ROUTER_MONITORING_PROJECT
+
+# Output
+NAME                                   READY   STATUS    RESTARTS   AGE
+prometheus-operator-7c75c8fb6b-k752m   1/1     Running   0          39s
+prometheus-prometheus-0                3/3     Running   1          36s
+----
+
+==== Create service monitor
+
+[source,bash]
+----
+# Create service monitor
+oc process -f router-service-monitor.yaml \
+  -p NAMESPACE=$ROUTER_MONITORING_PROJECT \
+  -p ROUTER_USERNAME=$ROUTER_USERNAME \
+  -p ROUTER_PASSWORD=$ROUTER_PASSWORD \
+  | oc apply -f -
+----
+
+==== Prometheus target
+
+Check if your router is showing on Prometheus targets page
+
+image::03.png[]
+
+=== Grafana
+
+To install grafana, run:
+
+[source,bash]
+----
+./install-grafana.sh $ROUTER_MONITORING_PROJECT
+----
+
+Find the grafana URL by running:
+
+[source,bash]
+----
+oc get route -n $ROUTER_MONITORING_PROJECT
+----
+
+User: admin
+Pass: admin
+
+==== Grafana Dashboard
+
+You can install the dashboards below:
+
+* https://grafana.com/grafana/dashboards/367
+* https://github.com/rfrail3/grafana-dashboards/blob/master/prometheus/haproxy-full.json
+
+=== Docs
+
+* https://github.com/jboss-developer/jboss-jdg-quickstarts/tree/jdg-7.3.x/openshift/shared/prometheus-monitoring

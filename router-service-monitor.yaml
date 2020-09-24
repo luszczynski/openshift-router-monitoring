@@ -1,0 +1,100 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: router-prometheus-service-monitor
+  labels:
+    app: router-prometheus-service-monitor
+  annotations:
+    openshift.io/display-name: "Red Hat Router service-monitor install"
+    openshift.io/provider-display-name: "Red Hat, Inc."
+    description: "A ServiceMonitor for Router"
+    tags: "router,prometheus,prometheus-operator,monitoring"
+    version: "1.0"
+message: |-
+  prometheus-operator is now deployed to ${NAMESPACE}
+parameters:
+- name: NAMESPACE
+  displayName: Namespace
+  value: router-monitoring
+  required: true
+  description: Namespace in which the prometheus-operator is installed.
+- name: ROUTER_SERVICE_NAME
+  displayName: Router Service Name
+  value: 'router-metrics'
+  required: true
+  description: The service name of Router to monitor
+- name: ROUTER_LABEL
+  displayName: Router Label
+  value: 'router'
+  required: true
+- name: ROUTER_MONITORING_PORT
+  displayName: Router Monitoring Port
+  value: 'monitoring'
+  required: true
+- name: ROUTER_USERNAME
+  displayName: Router Monitoring Username
+  value: 'admin'
+  required: true
+- name: ROUTER_PASSWORD
+  displayName: Router Monitoring Password
+  value: 'admin'
+  required: true
+- name: ROUTER_PROJECT
+  displayName: Router project
+  value: 'default'
+  required: true
+
+
+objects:
+#
+# OpenShift resources
+#
+
+- apiVersion: v1
+  stringData:
+    password: ${ROUTER_PASSWORD}
+    username: ${ROUTER_USERNAME}
+  kind: Secret
+  metadata:
+    name: servicemonitor-auth
+    namespace: ${NAMESPACE}
+  type: Opaque
+
+- apiVersion: monitoring.coreos.com/v1 
+  kind: ServiceMonitor
+  metadata:
+    name: ${ROUTER_SERVICE_NAME}
+    namespace: ${NAMESPACE}
+    labels:
+      metrics: ${ROUTER_LABEL}
+  spec:
+    selector:
+      matchLabels:
+        app: ${ROUTER_SERVICE_NAME}
+    namespaceSelector:
+      matchNames:
+      - default
+    endpoints:
+    - basicAuth:
+        password:
+          key: password
+          name: servicemonitor-auth
+        username:
+          key: username
+          name: servicemonitor-auth
+      port: ${ROUTER_MONITORING_PORT}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${ROUTER_SERVICE_NAME}
+    namespace: ${ROUTER_PROJECT}
+    labels:
+      router: router
+      app: ${ROUTER_SERVICE_NAME}
+  spec:
+    selector:
+      router: router
+    ports:
+    - name: ${ROUTER_MONITORING_PORT}
+      port: 1936
