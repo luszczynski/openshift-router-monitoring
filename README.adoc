@@ -163,6 +163,17 @@ prometheus-operator-7c75c8fb6b-k752m   1/1     Running   0          39s
 prometheus-prometheus-0                3/3     Running   1          36s
 ----
 
+==== Fix Permission
+
+Now let's give read access to the $ROUTER_MONITORING_PROJECT on the `default` project.
+
+[source,bash]
+----
+oc adm policy add-role-to-user view system:serviceaccount:$ROUTER_MONITORING_PROJECT:prometheus -n default
+----
+
+NOTE: It's important to look the prometheus-operator and prometheus pod's log to see if there is any permission issue. You can do that by running `oc logs -f <pod> -c <container>`
+
 === Create service monitor
 
 [source,bash]
